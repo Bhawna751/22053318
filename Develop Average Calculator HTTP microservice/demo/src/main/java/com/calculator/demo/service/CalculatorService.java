@@ -1,7 +1,10 @@
 package com.calculator.demo.service;
 
+import com.calculator.demo.model.AuthRequest;
+import com.calculator.demo.model.AuthResponse;
 import com.calculator.demo.model.CalculatorResponse;
 import com.calculator.demo.model.ThirdPartyResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -10,16 +13,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 @Service
 public class CalculatorService {
+
     static ArrayList<Integer> currentList = new ArrayList<>();
     private RestTemplate restTemplate = new RestTemplate();
-    public CalculatorResponse calculate( String mode){
+    public CalculatorResponse calculate( String mode) throws IOException {
         String token = "";
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        //read JSON file and convert to a customer object
+        AuthRequest authRequest = objectMapper.readValue(new File("src/main/resources/static/auth.json"), AuthRequest.class);
+        HttpEntity authEntity = new HttpEntity(authRequest);
+        ResponseEntity<AuthResponse> authresponse =  restTemplate.exchange(
+                "http://20.244.56.144/evaluation-service/auth", HttpMethod.POST, authEntity, AuthResponse.class);
+        token = authresponse.getBody().getAccessToken();
 
         String m = "";
         if(mode.equals("e")) m = "even";
@@ -27,7 +41,7 @@ public class CalculatorService {
         else if(mode.equals("r")) m = "rand";
         else if(mode.equals("p")) m = "primes";
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiZXhwIjoxNzQzNjA1NjQxLCJpYXQiOjE3NDM2MDUzNDEsImlzcyI6IkFmZm9yZG1lZCIsImp0aSI6ImQ2N2FmYjAwLTQ3N2QtNDg0MC04ODIyLTFmNWI2MTJmZTAyNiIsInN1YiI6ImJoYXduYXBpbGxhaTc1MUBnbWFpbC5jb20ifSwiZW1haWwiOiJiaGF3bmFwaWxsYWk3NTFAZ21haWwuY29tIiwibmFtZSI6ImJoYXduYSBwaWxsYWkiLCJyb2xsTm8iOiIyMjA1MzMxOCIsImFjY2Vzc0NvZGUiOiJud3B3cloiLCJjbGllbnRJRCI6ImQ2N2FmYjAwLTQ3N2QtNDg0MC04ODIyLTFmNWI2MTJmZTAyNiIsImNsaWVudFNlY3JldCI6Im1rUHd1TW5uRkVyV1Z0QkoifQ.94LMMxReVL1BKLCJhQ4BMxuyc6tLmfGQf2Legw7w_hc");
+        headers.setBearerAuth(token);
 
         HttpEntity requestEntity = new HttpEntity<>(headers);
         ResponseEntity<ThirdPartyResponse> response =  restTemplate.exchange(
